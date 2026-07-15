@@ -1,0 +1,9 @@
+{
+  "name": "Lịch Xe Cao Lãnh",
+  "short_name": "Lịch Xe",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f3ea",
+  "theme_color": "#0f5f6a",
+  "icons": []
+}
