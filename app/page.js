@@ -4,11 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { parseManyNames, toTitleCase, normalizeText } from "@/lib/text";
 
 function today() {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return formatDateInput(new Date());
 }
 
 export default function HomePage() {
@@ -500,9 +496,8 @@ export default function HomePage() {
                       </div>
                     )}
                   </div>
-                  <button type="button" className="secondary-button" onClick={addBranchesToForm}>Thêm chip</button>
                 </div>
-                <small className="input-hint">Mỗi chi nhánh là một chip riêng. Có thể dán nhiều chi nhánh bằng dấu phẩy, xuống dòng hoặc dấu " - " rồi bấm Thêm chip.</small>
+                <small className="input-hint">Mỗi chi nhánh là một chip riêng. Gõ tên rồi bấm Enter, hoặc chạm gợi ý để thêm. Có thể dán nhiều chi nhánh bằng dấu phẩy, xuống dòng hoặc dấu " - ".</small>
               </div>
               <div className="form-section">
                 <div className="section-title">
@@ -630,7 +625,14 @@ function RouteRow({ route, index, onEdit, drag, setDrag, dropPreview }) {
 function shiftDate(amount, value, setDate) {
   const date = new Date(`${value}T00:00:00`);
   date.setDate(date.getDate() + amount);
-  setDate(date.toISOString().slice(0, 10));
+  setDate(formatDateInput(date));
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function mergeBranchNames(current, nextNames) {

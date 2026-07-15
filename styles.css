@@ -686,8 +686,7 @@ body.is-pointer-dragging {
 
 .inline-adder {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
+  grid-template-columns: 1fr;
 }
 
 .branch-input-wrap {
