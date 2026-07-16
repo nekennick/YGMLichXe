@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { deleteRoute, saveRoute } from "@/lib/db";
+import { deleteRoute, getRoutes, saveRoute } from "@/lib/db";
 
 export const runtime = "nodejs";
+
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const date = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+  return NextResponse.json(await getRoutes(date));
+}
 
 export async function POST(request) {
   const body = await request.json();

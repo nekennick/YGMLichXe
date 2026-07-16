@@ -27,13 +27,19 @@ export default function HomePage() {
   const [drag, setDrag] = useState(null);
   const [dropPreview, setDropPreview] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef(null);
-  const loadSeqRef = useRef(0);
+  const catalogLoadSeqRef = useRef(0);
+  const routeLoadSeqRef = useRef(0);
   const dropPreviewRef = useRef(null);
   const branchInputComposingRef = useRef(false);
 
   useEffect(() => {
-    loadState(date);
+    loadCatalog();
+  }, []);
+
+  useEffect(() => {
+    loadRoutes(date);
   }, [date]);
 
   useEffect(() => {
@@ -114,20 +120,34 @@ export default function HomePage() {
     };
   }, [drag]);
 
-  async function loadState(nextDate = date) {
-    const requestId = ++loadSeqRef.current;
+  async function loadCatalog() {
+    const requestId = ++catalogLoadSeqRef.current;
     try {
-      const response = await fetch(`/api/state?date=${encodeURIComponent(nextDate)}`, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Load state failed: ${response.status}`);
+      const response = await fetch("/api/catalog", { cache: "no-store" });
+      if (!response.ok) throw new Error(`Load catalog failed: ${response.status}`);
       const data = await response.json();
-      if (requestId !== loadSeqRef.current) return null;
+      if (requestId !== catalogLoadSeqRef.current) return null;
       setBranches(Array.isArray(data.branches) ? data.branches : []);
       setDrivers(Array.isArray(data.drivers) ? data.drivers : []);
       setVehicles(Array.isArray(data.vehicles) ? data.vehicles : []);
-      setRoutes(Array.isArray(data.routes) ? data.routes : []);
       return data;
     } catch (error) {
-      if (requestId === loadSeqRef.current) console.error(error);
+      if (requestId === catalogLoadSeqRef.current) console.error(error);
+      return null;
+    }
+  }
+
+  async function loadRoutes(nextDate = date) {
+    const requestId = ++routeLoadSeqRef.current;
+    try {
+      const response = await fetch(`/api/routes?date=${encodeURIComponent(nextDate)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Load routes failed: ${response.status}`);
+      const data = await response.json();
+      if (requestId !== routeLoadSeqRef.current) return null;
+      setRoutes(Array.isArray(data) ? data : []);
+      return data;
+    } catch (error) {
+      if (requestId === routeLoadSeqRef.current) console.error(error);
       return null;
     }
   }
@@ -168,30 +188,37 @@ export default function HomePage() {
 
   async function saveRoute(event) {
     event.preventDefault();
+    if (isSaving) return;
     if (!routeForm.branches.length) {
       alert("Anh thêm ít nhất một chi nhánh cho tuyến nhé.");
       return;
     }
-    const payload = {
-      ...routeForm,
-      sortOrder: editingRoute?.sortOrder || Date.now()
-    };
-    const response = await fetch("/api/routes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      alert("Không lưu được tuyến.");
-      return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        ...routeForm,
+        sortOrder: editingRoute?.sortOrder || Date.now()
+      };
+      const savedDate = routeForm.date;
+      const response = await fetch("/api/routes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) {
+        alert("Không lưu được tuyến.");
+        return;
+      }
+      const savedRoute = await response.json();
+      if (savedRoute?.date === date) {
+        setRoutes((items) => upsertRoute(items, savedRoute));
+      }
+      setDate(savedDate);
+      setRouteForm(null);
+      await Promise.all([loadRoutes(savedDate), loadCatalog()]);
+    } finally {
+      setIsSaving(false);
     }
-    const savedRoute = await response.json();
-    if (savedRoute?.date === date) {
-      setRoutes((items) => upsertRoute(items, savedRoute));
-    }
-    setDate(routeForm.date);
-    setRouteForm(null);
-    await loadState(routeForm.date);
   }
 
   async function deleteRoute() {
@@ -199,7 +226,7 @@ export default function HomePage() {
     if (!confirm(`Xóa ${editingRoute.branches.join(" - ")}?`)) return;
     await fetch(`/api/routes?id=${encodeURIComponent(editingRoute.id)}`, { method: "DELETE" });
     setRouteForm(null);
-    await loadState();
+    await loadRoutes();
   }
 
   function addBranchesToForm() {
@@ -285,7 +312,7 @@ export default function HomePage() {
       body: JSON.stringify({ names: newBranchName })
     });
     setNewBranchName("");
-    await loadState();
+    await loadCatalog();
   }
 
   async function renameBranch(oldName, input) {
@@ -296,13 +323,13 @@ export default function HomePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ oldName, name })
     });
-    await loadState();
+    await Promise.all([loadCatalog(), loadRoutes()]);
   }
 
   async function deleteBranch(name) {
     if (!confirm(`Xóa "${name}" khỏi danh mục chi nhánh?`)) return;
     await fetch(`/api/branches?name=${encodeURIComponent(name)}`, { method: "DELETE" });
-    await loadState();
+    await loadCatalog();
   }
 
   async function reorderRoutes(sourceId, targetId, position) {
@@ -332,7 +359,7 @@ export default function HomePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "branches", routeId: route.id, branches: next })
     });
-    await loadState();
+    await loadRoutes();
   }
 
   async function captureScheduleImage() {
@@ -580,7 +607,7 @@ export default function HomePage() {
               </div>
               <div className="sheet-actions">
                 {editingRoute && <button type="button" className="danger-button" onClick={deleteRoute}>Xóa</button>}
-                <button type="submit" className="primary-button">Lưu tuyến</button>
+                <button type="submit" className="primary-button" disabled={isSaving}>{isSaving ? "Đang lưu..." : "Lưu tuyến"}</button>
               </div>
             </form>
           </section>
