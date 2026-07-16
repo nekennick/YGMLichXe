@@ -791,6 +791,14 @@ function createScheduleImageBlob({ routes, dateLabel, routeCount }) {
     y += layout.height;
   });
 
+  ctx.save();
+  ctx.globalAlpha = 0.26;
+  ctx.fillStyle = palette.primaryStrong;
+  ctx.font = "800 24px Inter, system-ui, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("Powered by Khoa Trần", width - margin, height - 18);
+  ctx.restore();
+
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);

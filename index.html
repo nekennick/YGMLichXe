@@ -1,188 +1,211 @@
 <!doctype html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f7f3ea" />
-    <title>Lịch Xe Cao Lãnh</title>
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <header class="topbar">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" role="img">
-              <path d="M4 7.5h9.5v7H4z" />
-              <path d="M13.5 10h3.2l2.6 2.8v1.7h-5.8z" />
-              <path d="M7 17.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9.5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
-            </svg>
-          </span>
-          <div>
-            <p>Tổng kho Cao Lãnh</p>
-            <h1>Lịch xe</h1>
-          </div>
-        </div>
-        <div class="top-actions">
-          <button class="icon-button" id="manageBranchesBtn" title="Quản lý chi nhánh" aria-label="Quản lý chi nhánh">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /><path d="M8 6v12" /></svg>
-          </button>
-          <button class="icon-button" id="importBtn" title="Nhập tuyến từ text" aria-label="Nhập tuyến từ text">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 15v4h14v-4" /></svg>
-          </button>
-          <button class="icon-button" id="exportBtn" title="Xuất CSV" aria-label="Xuất CSV">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9m0 12 4-4m-4 4-4-4M5 9V5h14v4" /></svg>
-          </button>
-          <button class="primary-button" id="newRouteBtn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            Thêm tuyến
-          </button>
-        </div>
-      </header>
 
-      <section class="control-strip" aria-label="Bộ lọc lịch xe">
-        <div class="date-card">
-          <button class="ghost-button" id="prevDayBtn" aria-label="Ngày trước">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-          </button>
-          <label>
-            <span>Ngày giao</span>
-            <input id="dateFilter" type="date" />
-          </label>
-          <button class="ghost-button" id="nextDayBtn" aria-label="Ngày sau">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-          </button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f3ea" />
+  <title>Lịch Xe Cao Lãnh</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M4 7.5h9.5v7H4z" />
+            <path d="M13.5 10h3.2l2.6 2.8v1.7h-5.8z" />
+            <path d="M7 17.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9.5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+          </svg>
+        </span>
+        <div>
+          <p>Tổng kho Cao Lãnh</p>
+          <h1>Lịch xe</h1>
         </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" id="manageBranchesBtn" title="Quản lý chi nhánh" aria-label="Quản lý chi nhánh">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+            <path d="M8 6v12" />
+          </svg>
+        </button>
+        <button class="icon-button" id="importBtn" title="Nhập tuyến từ text" aria-label="Nhập tuyến từ text">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v12m0-12 4 4m-4-4-4 4M5 15v4h14v-4" />
+          </svg>
+        </button>
+        <button class="icon-button" id="exportBtn" title="Xuất CSV" aria-label="Xuất CSV">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 21V9m0 12 4-4m-4 4-4-4M5 9V5h14v4" />
+          </svg>
+        </button>
+        <button class="primary-button" id="newRouteBtn">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Thêm tuyến
+        </button>
+      </div>
+    </header>
 
-        <label class="search-field">
-          <span>Tìm tuyến</span>
-          <input id="searchInput" type="search" placeholder="Chi nhánh, tài xế, xe..." />
-        </label>
-
+    <section class="control-strip" aria-label="Bộ lọc lịch xe">
+      <div class="date-card">
+        <button class="ghost-button" id="prevDayBtn" aria-label="Ngày trước">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
         <label>
-          <span>Xe</span>
-          <select id="vehicleFilter"></select>
+          <span>Ngày giao</span>
+          <input id="dateFilter" type="date" />
         </label>
+        <button class="ghost-button" id="nextDayBtn" aria-label="Ngày sau">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
 
-        <label>
-          <span>Tài xế</span>
-          <select id="driverFilter"></select>
-        </label>
-      </section>
+      <label class="search-field">
+        <span>Tìm tuyến</span>
+        <input id="searchInput" type="search" placeholder="Chi nhánh, tài xế, xe..." />
+      </label>
 
-      <main class="board route-board" id="board" aria-label="Danh sách tuyến xe theo ngày"></main>
-    </div>
+      <label>
+        <span>Xe</span>
+        <select id="vehicleFilter"></select>
+      </label>
 
-    <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
-    <section class="bottom-sheet" id="routeSheet" aria-modal="true" role="dialog" aria-labelledby="sheetTitle" hidden>
-      <form id="routeForm">
-        <div class="sheet-header">
-          <div>
-            <p class="eyebrow">Điều phối tuyến</p>
-            <h2 id="sheetTitle">Thêm tuyến</h2>
-          </div>
-          <button type="button" class="icon-button" id="closeSheetBtn" aria-label="Đóng">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <input type="hidden" id="routeId" />
-        <div class="form-grid">
-          <label>
-            <span>Ngày</span>
-            <input id="routeDate" type="date" required />
-          </label>
-          <input id="routeTitle" type="hidden" />
-          <label>
-            <span>Xe</span>
-            <select id="routeVehicle" required></select>
-          </label>
-        </div>
-
-        <div class="form-section">
-          <div class="section-title">
-            <span>Chi nhánh theo thứ tự ghé</span>
-            <small id="branchCount">0 điểm</small>
-          </div>
-          <div class="inline-adder">
-            <div class="branch-input-wrap">
-              <input id="branchSearch" type="text" placeholder="Trà Ôn - Tiểu Cần - Trà Vinh" autocomplete="off" />
-              <div class="branch-suggestions" id="branchSuggestions" role="listbox" hidden></div>
-            </div>
-            <button type="button" class="secondary-button" id="addBranchBtn">Thêm</button>
-          </div>
-          <small class="input-hint">Có thể nhập nhiều chi nhánh bằng dấu gạch ngang, dấu phẩy hoặc xuống dòng.</small>
-          <div class="branch-list" id="selectedBranches"></div>
-        </div>
-
-        <div class="form-section">
-          <div class="section-title">
-            <span>Tài xế</span>
-            <small>Có thể chọn nhiều người</small>
-          </div>
-          <div class="check-grid" id="driverChecks"></div>
-        </div>
-
-        <div class="conflict-box" id="conflictBox" hidden></div>
-
-        <div class="sheet-actions">
-          <button type="button" class="danger-button" id="deleteRouteBtn">Xóa</button>
-          <button type="button" class="secondary-button" id="duplicateRouteBtn">Nhân bản</button>
-          <button type="submit" class="primary-button">Lưu tuyến</button>
-        </div>
-      </form>
+      <label>
+        <span>Tài xế</span>
+        <select id="driverFilter"></select>
+      </label>
     </section>
 
-    <dialog class="manager-dialog" id="branchManagerDialog">
-      <form method="dialog">
-        <div class="sheet-header">
-          <div>
-            <p class="eyebrow">Danh mục</p>
-            <h2>Quản lý chi nhánh</h2>
-          </div>
-          <button class="icon-button" value="cancel" aria-label="Đóng">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
+    <main class="board route-board" id="board" aria-label="Danh sách tuyến xe theo ngày"></main>
+  </div>
 
-        <div class="manager-add">
-          <label>
-            <span>Thêm chi nhánh</span>
-            <input id="newBranchName" type="text" placeholder="Nhập tên chi nhánh mới" autocomplete="off" />
-          </label>
-          <button type="button" class="primary-button" id="addBranchToCatalogBtn">Thêm</button>
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <section class="bottom-sheet" id="routeSheet" aria-modal="true" role="dialog" aria-labelledby="sheetTitle" hidden>
+    <form id="routeForm">
+      <div class="sheet-header">
+        <div>
+          <p class="eyebrow">Điều phối tuyến</p>
+          <h2 id="sheetTitle">Thêm tuyến</h2>
         </div>
+        <button type="button" class="icon-button" id="closeSheetBtn" aria-label="Đóng">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        <label class="manager-search">
-          <span>Tìm trong danh mục</span>
-          <input id="branchCatalogSearch" type="search" placeholder="Tìm chi nhánh..." />
+      <input type="hidden" id="routeId" />
+      <div class="form-grid">
+        <label>
+          <span>Ngày</span>
+          <input id="routeDate" type="date" required />
         </label>
+        <input id="routeTitle" type="hidden" />
+        <label>
+          <span>Xe</span>
+          <select id="routeVehicle" required></select>
+        </label>
+      </div>
 
-        <div class="manager-list" id="branchCatalogList"></div>
-      </form>
-    </dialog>
-
-    <dialog class="import-dialog" id="importDialog">
-      <form method="dialog">
-        <div class="sheet-header">
-          <div>
-            <p class="eyebrow">Nhập nhanh</p>
-            <h2>Nhập tuyến từ nội dung</h2>
+      <div class="form-section">
+        <div class="section-title">
+          <span>Chi nhánh theo thứ tự ghé</span>
+          <small id="branchCount">0 điểm</small>
+        </div>
+        <div class="inline-adder">
+          <div class="branch-input-wrap">
+            <input id="branchSearch" type="text" placeholder="Trà Ôn - Tiểu Cần - Trà Vinh" autocomplete="off" />
+            <div class="branch-suggestions" id="branchSuggestions" role="listbox" hidden></div>
           </div>
-          <button class="icon-button" value="cancel" aria-label="Đóng">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
+          <button type="button" class="secondary-button" id="addBranchBtn">Thêm</button>
         </div>
-        <p class="helper-text">Dán nội dung dạng: <strong>Ngày 9/7</strong> và các dòng <strong>Tuyến: ... (Thành + Tuấn) DOTHANH</strong>.</p>
-        <textarea id="importText" rows="9"></textarea>
-        <div class="sheet-actions">
-          <button class="secondary-button" value="cancel">Hủy</button>
-          <button type="button" class="primary-button" id="confirmImportBtn">Nhập vào ngày đang chọn</button>
-        </div>
-      </form>
-    </dialog>
+        <small class="input-hint">Có thể nhập nhiều chi nhánh bằng dấu gạch ngang, dấu phẩy hoặc xuống dòng.</small>
+        <div class="branch-list" id="selectedBranches"></div>
+      </div>
 
-    <script src="app.js"></script>
-  </body>
+      <div class="form-section">
+        <div class="section-title">
+          <span>Tài xế</span>
+          <small>Có thể chọn nhiều người</small>
+        </div>
+        <div class="check-grid" id="driverChecks"></div>
+      </div>
+
+      <div class="conflict-box" id="conflictBox" hidden></div>
+
+      <div class="sheet-actions">
+        <button type="button" class="danger-button" id="deleteRouteBtn">Xóa</button>
+        <button type="button" class="secondary-button" id="duplicateRouteBtn">Nhân bản</button>
+        <button type="submit" class="primary-button">Lưu tuyến</button>
+      </div>
+    </form>
+  </section>
+
+  <dialog class="manager-dialog" id="branchManagerDialog">
+    <form method="dialog">
+      <div class="sheet-header">
+        <div>
+          <p class="eyebrow">Danh mục</p>
+          <h2>Quản lý chi nhánh</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Đóng">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="manager-add">
+        <label>
+          <span>Thêm chi nhánh</span>
+          <input id="newBranchName" type="text" placeholder="Nhập tên chi nhánh mới" autocomplete="off" />
+        </label>
+        <button type="button" class="primary-button" id="addBranchToCatalogBtn">Thêm</button>
+      </div>
+
+      <label class="manager-search">
+        <span>Tìm trong danh mục</span>
+        <input id="branchCatalogSearch" type="search" placeholder="Tìm chi nhánh..." />
+      </label>
+
+      <div class="manager-list" id="branchCatalogList"></div>
+    </form>
+  </dialog>
+
+  <dialog class="import-dialog" id="importDialog">
+    <form method="dialog">
+      <div class="sheet-header">
+        <div>
+          <p class="eyebrow">Nhập nhanh</p>
+          <h2>Nhập tuyến từ nội dung</h2>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="Đóng">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="helper-text">Dán nội dung dạng: <strong>Ngày 9/7</strong> và các dòng <strong>Tuyến: ... (Thành + Tuấn)
+          DOTHANH</strong>.</p>
+      <textarea id="importText" rows="9"></textarea>
+      <div class="sheet-actions">
+        <button class="secondary-button" value="cancel">Hủy</button>
+        <button type="button" class="primary-button" id="confirmImportBtn">Nhập vào ngày đang chọn</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+
 </html>
