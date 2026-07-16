@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["lich_xe"]
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("branches")
+  @@schema("lich_xe")
+}
+
+model Driver {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  @@map("drivers")
+  @@schema("lich_xe")
+}
+
+model Vehicle {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  @@map("vehicles")
+  @@schema("lich_xe")
+}
+
+model Route {
+  id        String        @id @default(uuid())
+  date      String
+  title     String
+  vehicle   String
+  sortOrder BigInt        @map("sort_order")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+  branches  RouteBranch[]
+  drivers   RouteDriver[]
+
+  @@index([date, sortOrder])
+  @@map("routes")
+  @@schema("lich_xe")
+}
+
+model RouteBranch {
+  id       Int    @id @default(autoincrement())
+  routeId  String @map("route_id")
+  name     String
+  position Int
+  route    Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId, position])
+  @@map("route_branches")
+  @@schema("lich_xe")
+}
+
+model RouteDriver {
+  id       Int    @id @default(autoincrement())
+  routeId  String @map("route_id")
+  name     String
+  position Int
+  route    Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@index([routeId, position])
+  @@map("route_drivers")
+  @@schema("lich_xe")
+}
