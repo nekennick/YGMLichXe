@@ -123,6 +123,17 @@ svg {
   gap: 8px;
 }
 
+.top-actions .icon-button {
+  width: 48px;
+  min-height: 48px;
+}
+
+.top-actions .icon-button svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.6;
+}
+
 .primary-button,
 .secondary-button,
 .ghost-button,
@@ -260,6 +271,40 @@ textarea:focus {
   padding: 12px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
+}
+
+.capture-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 12px;
+  border: 1px solid rgba(15, 95, 106, 0.3);
+  border-radius: var(--radius);
+  color: var(--primary-strong);
+  background: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 850;
+  white-space: nowrap;
+  box-shadow: 0 8px 18px rgba(38, 34, 24, 0.08);
+}
+
+.capture-button:hover {
+  background: var(--primary-soft);
+}
+
+.capture-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  box-shadow: none;
+}
+
+.capture-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.6;
 }
 
 .route-table-header h2 {
@@ -405,20 +450,27 @@ textarea:focus {
 }
 
 .route-drag-handle {
-  display: grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 34px;
-  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
   border: 1px solid #d7cbb7;
   border-radius: var(--radius);
+  appearance: none;
+  -webkit-appearance: none;
   color: var(--primary);
   background: #fffaf1;
   cursor: grab;
+  line-height: 0;
   touch-action: none;
   user-select: none;
 }
 
 .route-drag-handle svg {
+  display: block;
   width: 18px;
   height: 18px;
   stroke-width: 4;
@@ -555,12 +607,12 @@ body.is-pointer-dragging {
   }
 
   .route-name {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     grid-template-columns: 1fr;
+    grid-template-rows: 38px auto;
     grid-row: 1 / span 3;
-    align-items: center;
-    justify-content: flex-start;
+    align-content: start;
+    justify-items: center;
     gap: 6px;
     border-right: 1px solid #eee5d6;
     border-bottom: 0;
@@ -993,6 +1045,17 @@ body.is-pointer-dragging {
     min-height: 38px;
   }
 
+  .top-actions .icon-button {
+    width: 52px;
+    min-height: 46px;
+  }
+
+  .top-actions .icon-button svg {
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.8;
+  }
+
   .primary-button {
     min-height: 38px;
     padding: 0 10px;
@@ -1037,6 +1100,7 @@ body.is-pointer-dragging {
 
   .route-table-header {
     align-items: flex-start;
+    flex-wrap: wrap;
     padding: 10px;
   }
 
@@ -1048,6 +1112,14 @@ body.is-pointer-dragging {
   .route-table-header > span {
     padding: 5px 8px;
     font-size: 0.76rem;
+  }
+
+  .capture-button {
+    order: 3;
+    width: 100%;
+    min-height: 40px;
+    margin-left: 0;
+    font-size: 0.82rem;
   }
 
   .route-row {
@@ -1062,6 +1134,7 @@ body.is-pointer-dragging {
   .route-name {
     padding: 8px 5px;
     gap: 5px;
+    grid-template-rows: 34px auto;
   }
 
   .route-name strong {

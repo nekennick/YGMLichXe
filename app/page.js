@@ -26,6 +26,7 @@ export default function HomePage() {
   const [newBranchName, setNewBranchName] = useState("");
   const [drag, setDrag] = useState(null);
   const [dropPreview, setDropPreview] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const inputRef = useRef(null);
   const dropPreviewRef = useRef(null);
   const branchInputComposingRef = useRef(false);
@@ -320,6 +321,43 @@ export default function HomePage() {
     await loadState();
   }
 
+  async function captureScheduleImage() {
+    if (!filteredRoutes.length || isCapturing) return;
+    setIsCapturing(true);
+    try {
+      await document.fonts?.ready;
+      const blob = await createScheduleImageBlob({
+        routes: filteredRoutes,
+        dateLabel: formatDisplayDate(date),
+        routeCount: filteredRoutes.length
+      });
+      const fileName = `lich-xe-${date}.png`;
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: "Lich xe",
+          text: `Lich xe ${formatDisplayDate(date)}`
+        });
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+    } catch (error) {
+      if (error?.name !== "AbortError") alert("Khong tao duoc anh lich xe.");
+    } finally {
+      setIsCapturing(false);
+    }
+  }
+
   const catalogBranches = branches.filter((branch) => !catalogSearch || normalizeText(branch).includes(normalizeText(catalogSearch)));
 
   return (
@@ -388,6 +426,10 @@ export default function HomePage() {
               <p className="eyebrow">Lịch tuyến</p>
               <h2>{formatDisplayDate(date)}</h2>
             </div>
+            <button type="button" className="capture-button" onClick={captureScheduleImage} disabled={!filteredRoutes.length || isCapturing}>
+              <CameraIcon />
+              {isCapturing ? "Đang chụp" : "Chụp ảnh"}
+            </button>
             <span>{filteredRoutes.length} tuyến</span>
           </header>
           <div className="route-table" role="table" aria-label="Tuyến xe">
@@ -658,6 +700,243 @@ function formatDisplayDate(value) {
   }).format(new Date(`${value}T00:00:00`));
 }
 
+function createScheduleImageBlob({ routes, dateLabel, routeCount }) {
+  const width = 1200;
+  const margin = 48;
+  const contentWidth = width - margin * 2;
+  const columns = {
+    route: 128,
+    branch: 560,
+    driver: 250,
+    vehicle: 166
+  };
+  const palette = {
+    bg: "#f7f3ea",
+    card: "#fffaf1",
+    white: "#ffffff",
+    ink: "#17211f",
+    muted: "#63706b",
+    line: "#ddd4c3",
+    softLine: "#eee5d6",
+    primary: "#0f5f6a",
+    primaryStrong: "#08444c",
+    primarySoft: "#d9ecec"
+  };
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.font = "700 28px Inter, system-ui, sans-serif";
+
+  const rowLayouts = routes.map((route, index) => {
+    const branchLines = layoutChips(ctx, route.branches, columns.branch - 48);
+    const driverLines = wrapText(ctx, route.driverIds.join(" + ") || "Chưa chọn tài xế", columns.driver - 36, "500 28px Inter, system-ui, sans-serif");
+    const vehicleLines = wrapText(ctx, route.vehicleId || "Chưa chọn xe", columns.vehicle - 36, "800 26px Inter, system-ui, sans-serif");
+    const contentHeight = Math.max(
+      112,
+      branchLines.height + 40,
+      driverLines.length * 34 + 42,
+      vehicleLines.length * 32 + 42
+    );
+    return { route, index, branchLines, driverLines, vehicleLines, height: contentHeight };
+  });
+
+  const headerHeight = 150;
+  const tableHeadHeight = 58;
+  const totalRowsHeight = rowLayouts.reduce((sum, row) => sum + row.height, 0);
+  const height = margin + headerHeight + tableHeadHeight + totalRowsHeight + margin;
+
+  canvas.width = width;
+  canvas.height = height;
+
+  ctx.fillStyle = palette.bg;
+  ctx.fillRect(0, 0, width, height);
+
+  roundRect(ctx, margin, margin, contentWidth, height - margin * 2, 10);
+  ctx.fillStyle = palette.card;
+  ctx.fill();
+  ctx.strokeStyle = palette.line;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = palette.card;
+  ctx.fillRect(margin + 1, margin + 1, contentWidth - 2, headerHeight - 1);
+  ctx.fillStyle = palette.muted;
+  ctx.font = "800 24px Inter, system-ui, sans-serif";
+  ctx.fillText("LỊCH TUYẾN", margin + 32, margin + 48);
+  ctx.fillStyle = palette.ink;
+  ctx.font = "900 42px Inter, system-ui, sans-serif";
+  ctx.fillText(capitalizeFirst(dateLabel), margin + 32, margin + 102);
+
+  const badgeText = `${routeCount} tuyến`;
+  ctx.font = "900 24px Inter, system-ui, sans-serif";
+  const badgeWidth = ctx.measureText(badgeText).width + 42;
+  roundRect(ctx, width - margin - badgeWidth - 32, margin + 42, badgeWidth, 54, 999);
+  ctx.fillStyle = palette.primarySoft;
+  ctx.fill();
+  ctx.fillStyle = palette.primaryStrong;
+  ctx.fillText(badgeText, width - margin - badgeWidth - 11, margin + 77);
+
+  let y = margin + headerHeight;
+  ctx.strokeStyle = palette.line;
+  ctx.beginPath();
+  ctx.moveTo(margin, y);
+  ctx.lineTo(width - margin, y);
+  ctx.stroke();
+
+  drawTableHead(ctx, margin, y, columns, tableHeadHeight, palette);
+  y += tableHeadHeight;
+
+  rowLayouts.forEach((layout) => {
+    drawScheduleRow(ctx, margin, y, columns, layout, palette);
+    y += layout.height;
+  });
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Canvas export failed"));
+    }, "image/png", 0.96);
+  });
+}
+
+function drawTableHead(ctx, x, y, columns, height, palette) {
+  const labels = ["Tuyến", "Chi nhánh", "Tài xế", "Xe"];
+  const widths = [columns.route, columns.branch, columns.driver, columns.vehicle];
+  ctx.fillStyle = "#f4efe5";
+  ctx.fillRect(x, y, widths.reduce((sum, width) => sum + width, 0), height);
+  ctx.font = "900 20px Inter, system-ui, sans-serif";
+  ctx.fillStyle = palette.muted;
+
+  let cursor = x;
+  labels.forEach((label, index) => {
+    ctx.fillText(label.toUpperCase(), cursor + 18, y + 37);
+    cursor += widths[index];
+    if (index < labels.length - 1) drawVerticalLine(ctx, cursor, y, height, palette.line);
+  });
+}
+
+function drawScheduleRow(ctx, x, y, columns, layout, palette) {
+  const widths = [columns.route, columns.branch, columns.driver, columns.vehicle];
+  const totalWidth = widths.reduce((sum, width) => sum + width, 0);
+  ctx.fillStyle = layout.index % 2 ? "#fffdf8" : palette.white;
+  ctx.fillRect(x, y, totalWidth, layout.height);
+
+  let cursor = x;
+  widths.slice(0, -1).forEach((width) => {
+    cursor += width;
+    drawVerticalLine(ctx, cursor, y, layout.height, palette.softLine);
+  });
+  drawHorizontalLine(ctx, x, y + layout.height, totalWidth, palette.softLine);
+
+  ctx.fillStyle = "#f7f2e8";
+  ctx.fillRect(x, y, columns.route, layout.height);
+  ctx.fillStyle = palette.ink;
+  ctx.font = "900 28px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(`Tuyến ${layout.index + 1}`, x + columns.route / 2, y + Math.min(70, layout.height / 2 + 10));
+  ctx.textAlign = "left";
+
+  drawChips(ctx, layout.branchLines.lines, x + columns.route + 24, y + 28, palette);
+  drawWrappedCell(ctx, layout.driverLines, x + columns.route + columns.branch + 18, y + 44, "500 28px Inter, system-ui, sans-serif", palette.ink);
+  drawWrappedCell(ctx, layout.vehicleLines, x + columns.route + columns.branch + columns.driver + 18, y + 44, "900 26px Inter, system-ui, sans-serif", palette.primaryStrong);
+}
+
+function drawChips(ctx, lines, x, y, palette) {
+  let cursorY = y;
+  lines.forEach((line) => {
+    let cursorX = x;
+    line.forEach((chip) => {
+      roundRect(ctx, cursorX, cursorY, chip.width, 42, 999);
+      ctx.fillStyle = palette.card;
+      ctx.fill();
+      ctx.strokeStyle = palette.line;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = palette.ink;
+      ctx.font = "800 25px Inter, system-ui, sans-serif";
+      ctx.fillText(chip.label, cursorX + 20, cursorY + 28);
+      cursorX += chip.width + 12;
+    });
+    cursorY += 54;
+  });
+}
+
+function drawWrappedCell(ctx, lines, x, y, font, color) {
+  ctx.font = font;
+  ctx.fillStyle = color;
+  lines.forEach((line, index) => ctx.fillText(line, x, y + index * 34));
+}
+
+function layoutChips(ctx, labels, maxWidth) {
+  ctx.font = "800 25px Inter, system-ui, sans-serif";
+  const lines = [];
+  let line = [];
+  let lineWidth = 0;
+  labels.forEach((label) => {
+    const width = Math.ceil(ctx.measureText(label).width + 40);
+    if (line.length && lineWidth + width + 12 > maxWidth) {
+      lines.push(line);
+      line = [];
+      lineWidth = 0;
+    }
+    line.push({ label, width });
+    lineWidth += width + (line.length > 1 ? 12 : 0);
+  });
+  if (line.length) lines.push(line);
+  return { lines, height: Math.max(42, lines.length * 54 - 12) };
+}
+
+function wrapText(ctx, text, maxWidth, font) {
+  ctx.font = font;
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
+function roundRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function drawVerticalLine(ctx, x, y, height, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + height);
+  ctx.stroke();
+}
+
+function drawHorizontalLine(ctx, x, y, width, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + width, y);
+  ctx.stroke();
+}
+
+function capitalizeFirst(value) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+}
+
 function TruckIcon() {
   return <svg viewBox="0 0 24 24"><path d="M4 7.5h9.5v7H4z" /><path d="M13.5 10h3.2l2.6 2.8v1.7h-5.8z" /><path d="M7 17.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm9.5 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /></svg>;
 }
@@ -672,6 +951,10 @@ function CloseIcon() {
 
 function CheckIcon() {
   return <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>;
+}
+
+function CameraIcon() {
+  return <svg viewBox="0 0 24 24"><path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z" /><path d="M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /></svg>;
 }
 
 function ListIcon() {
