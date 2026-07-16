@@ -28,6 +28,7 @@ export default function HomePage() {
   const [dropPreview, setDropPreview] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const inputRef = useRef(null);
+  const loadSeqRef = useRef(0);
   const dropPreviewRef = useRef(null);
   const branchInputComposingRef = useRef(false);
 
@@ -114,12 +115,21 @@ export default function HomePage() {
   }, [drag]);
 
   async function loadState(nextDate = date) {
-    const response = await fetch(`/api/state?date=${encodeURIComponent(nextDate)}`, { cache: "no-store" });
-    const data = await response.json();
-    setBranches(data.branches);
-    setDrivers(data.drivers);
-    setVehicles(data.vehicles);
-    setRoutes(data.routes);
+    const requestId = ++loadSeqRef.current;
+    try {
+      const response = await fetch(`/api/state?date=${encodeURIComponent(nextDate)}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Load state failed: ${response.status}`);
+      const data = await response.json();
+      if (requestId !== loadSeqRef.current) return null;
+      setBranches(Array.isArray(data.branches) ? data.branches : []);
+      setDrivers(Array.isArray(data.drivers) ? data.drivers : []);
+      setVehicles(Array.isArray(data.vehicles) ? data.vehicles : []);
+      setRoutes(Array.isArray(data.routes) ? data.routes : []);
+      return data;
+    } catch (error) {
+      if (requestId === loadSeqRef.current) console.error(error);
+      return null;
+    }
   }
 
   const filteredRoutes = useMemo(() => {
@@ -174,6 +184,10 @@ export default function HomePage() {
     if (!response.ok) {
       alert("Không lưu được tuyến.");
       return;
+    }
+    const savedRoute = await response.json();
+    if (savedRoute?.date === date) {
+      setRoutes((items) => upsertRoute(items, savedRoute));
     }
     setDate(routeForm.date);
     setRouteForm(null);
@@ -689,6 +703,11 @@ function mergeBranchNames(current, nextNames) {
     }
   });
   return merged;
+}
+
+function upsertRoute(items, route) {
+  const next = [...items.filter((item) => item.id !== route.id), route];
+  return next.sort((first, second) => Number(first.sortOrder || 0) - Number(second.sortOrder || 0));
 }
 
 function formatDisplayDate(value) {
