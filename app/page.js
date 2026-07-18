@@ -3,8 +3,44 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseManyNames, toTitleCase, normalizeText } from "@/lib/text";
 
+const CATALOG_CACHE_KEY = "lich-xe-catalog-v1";
+
 function today() {
   return formatDateInput(new Date());
+}
+
+function readCatalogCache() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(CATALOG_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return {
+      branches: Array.isArray(data.branches) ? data.branches : [],
+      drivers: Array.isArray(data.drivers) ? data.drivers : [],
+      vehicles: Array.isArray(data.vehicles) ? data.vehicles : []
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCatalogCache(catalog) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify(catalog));
+  } catch {
+    // Local storage can be unavailable in private mode; the app still works from the API.
+  }
+}
+
+async function readResponseError(response, fallback) {
+  try {
+    const data = await response.json();
+    return data?.error || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export default function HomePage() {
@@ -28,15 +64,33 @@ export default function HomePage() {
   const [dropPreview, setDropPreview] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [managerBusy, setManagerBusy] = useState("");
+  const [renamingBranch, setRenamingBranch] = useState(null);
+  const [notice, setNotice] = useState("");
   const inputRef = useRef(null);
+  const noticeTimerRef = useRef(null);
+  const catalogCacheReadyRef = useRef(false);
   const catalogLoadSeqRef = useRef(0);
   const routeLoadSeqRef = useRef(0);
   const dropPreviewRef = useRef(null);
   const branchInputComposingRef = useRef(false);
 
   useEffect(() => {
+    const cached = readCatalogCache();
+    if (cached) {
+      setBranches(cached.branches);
+      setDrivers(cached.drivers);
+      setVehicles(cached.vehicles);
+    }
+    catalogCacheReadyRef.current = true;
     loadCatalog();
   }, []);
+
+  useEffect(() => {
+    if (!catalogCacheReadyRef.current) return;
+    if (!branches.length && !drivers.length && !vehicles.length) return;
+    writeCatalogCache({ branches, drivers, vehicles });
+  }, [branches, drivers, vehicles]);
 
   useEffect(() => {
     loadRoutes(date);
@@ -152,6 +206,12 @@ export default function HomePage() {
     }
   }
 
+  function showNotice(message) {
+    setNotice(message);
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = window.setTimeout(() => setNotice(""), 2400);
+  }
+
   const filteredRoutes = useMemo(() => {
     const query = normalizeText(search);
     return routes.filter((route) => {
@@ -193,29 +253,48 @@ export default function HomePage() {
       alert("Anh thêm ít nhất một chi nhánh cho tuyến nhé.");
       return;
     }
+
+    const previousRoutes = routes;
+    const savedDate = routeForm.date;
+    const optimisticRoute = buildRouteFromForm(
+      {
+        ...routeForm,
+        sortOrder: editingRoute?.sortOrder || Date.now()
+      },
+      Date.now()
+    );
+
+    routeLoadSeqRef.current += 1;
     setIsSaving(true);
+    setRouteForm(null);
+    setEditingRoute(null);
+    setDate(savedDate);
+    if (savedDate === date) {
+      setRoutes((items) => upsertRoute(items, optimisticRoute));
+    }
+    showNotice("Đang lưu tuyến...");
+
     try {
       const payload = {
         ...routeForm,
-        sortOrder: editingRoute?.sortOrder || Date.now()
+        id: optimisticRoute.id,
+        sortOrder: optimisticRoute.sortOrder
       };
-      const savedDate = routeForm.date;
       const response = await fetch("/api/routes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) {
-        alert("Không lưu được tuyến.");
-        return;
-      }
+      if (!response.ok) throw new Error("Không lưu được tuyến.");
       const savedRoute = await response.json();
       if (savedRoute?.date === date) {
         setRoutes((items) => upsertRoute(items, savedRoute));
       }
-      setDate(savedDate);
-      setRouteForm(null);
+      showNotice("Đã lưu tuyến");
       await Promise.all([loadRoutes(savedDate), loadCatalog()]);
+    } catch (error) {
+      if (savedDate === date) setRoutes(previousRoutes);
+      alert(error.message || "Không lưu được tuyến.");
     } finally {
       setIsSaving(false);
     }
@@ -305,31 +384,91 @@ export default function HomePage() {
   }
 
   async function addBranchToCatalog() {
-    if (!newBranchName.trim()) return;
-    await fetch("/api/branches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ names: newBranchName })
-    });
+    if (!newBranchName.trim() || managerBusy) return;
+    const previousBranches = branches;
+    const nextBranches = sortByVietnameseName(mergeBranchNames(branches, parseManyNames(newBranchName)));
+    catalogLoadSeqRef.current += 1;
+    setManagerBusy("add");
+    setBranches(nextBranches);
     setNewBranchName("");
-    await loadCatalog();
+    showNotice("Đang thêm chi nhánh...");
+
+    try {
+      const response = await fetch("/api/branches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ names: newBranchName })
+      });
+      if (!response.ok) throw new Error("Không thêm được chi nhánh.");
+      await loadCatalog();
+      showNotice("Đã thêm chi nhánh");
+    } catch (error) {
+      setBranches(previousBranches);
+      alert(error.message || "Không thêm được chi nhánh.");
+    } finally {
+      setManagerBusy("");
+    }
   }
 
   async function renameBranch(oldName, input) {
     const name = toTitleCase(input.value);
-    if (!name) return;
-    await fetch("/api/branches", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oldName, name })
-    });
-    await Promise.all([loadCatalog(), loadRoutes()]);
+    const busyKey = `rename:${oldName}`;
+    if (!name || managerBusy) return;
+    if (name === oldName) {
+      input.value = oldName;
+      showNotice("Tên chi nhánh chưa thay đổi");
+      return;
+    }
+
+    const previousBranches = branches;
+    const previousRoutes = routes;
+    catalogLoadSeqRef.current += 1;
+    routeLoadSeqRef.current += 1;
+    setManagerBusy(busyKey);
+    setRenamingBranch({ oldName, nextName: name });
+    setBranches((items) => items.map((item) => (normalizeText(item) === normalizeText(oldName) ? name : item)));
+    setRoutes((items) => renameBranchInRoutes(items, oldName, name));
+    showNotice("Đang lưu chi nhánh...");
+
+    try {
+      const response = await fetch("/api/branches", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName, name })
+      });
+      if (!response.ok) throw new Error(await readResponseError(response, "Không lưu được chi nhánh."));
+      await Promise.all([loadCatalog(), loadRoutes()]);
+      showNotice("Đã lưu chi nhánh");
+    } catch (error) {
+      setBranches(previousBranches);
+      setRoutes(previousRoutes);
+      alert(error.message || "Không lưu được chi nhánh.");
+    } finally {
+      setManagerBusy("");
+      setRenamingBranch(null);
+    }
   }
 
   async function deleteBranch(name) {
-    if (!confirm(`Xóa "${name}" khỏi danh mục chi nhánh?`)) return;
-    await fetch(`/api/branches?name=${encodeURIComponent(name)}`, { method: "DELETE" });
-    await loadCatalog();
+    const busyKey = `delete:${name}`;
+    if (managerBusy || !confirm(`Xóa "${name}" khỏi danh mục chi nhánh?`)) return;
+    const previousBranches = branches;
+    catalogLoadSeqRef.current += 1;
+    setManagerBusy(busyKey);
+    setBranches((items) => items.filter((item) => normalizeText(item) !== normalizeText(name)));
+    showNotice("Đang xóa chi nhánh...");
+
+    try {
+      const response = await fetch(`/api/branches?name=${encodeURIComponent(name)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Không xóa được chi nhánh.");
+      await loadCatalog();
+      showNotice("Đã xóa chi nhánh");
+    } catch (error) {
+      setBranches(previousBranches);
+      alert(error.message || "Không xóa được chi nhánh.");
+    } finally {
+      setManagerBusy("");
+    }
   }
 
   async function reorderRoutes(sourceId, targetId, position) {
@@ -403,6 +542,7 @@ export default function HomePage() {
 
   return (
     <div className="app-shell">
+      {notice && <div className="toast" role="status">{notice}</div>}
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
@@ -627,22 +767,38 @@ export default function HomePage() {
             <div className="manager-add">
               <label>
                 <span>Thêm chi nhánh</span>
-                <input value={newBranchName} onChange={(event) => setNewBranchName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addBranchToCatalog()} placeholder="Nhập tên chi nhánh mới" />
+                <input value={newBranchName} disabled={managerBusy === "add"} onChange={(event) => setNewBranchName(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addBranchToCatalog()} placeholder="Nhập tên chi nhánh mới" />
               </label>
-              <button className="primary-button" onClick={addBranchToCatalog}>Thêm</button>
+              <button className="primary-button" onClick={addBranchToCatalog} disabled={Boolean(managerBusy)}>
+                {managerBusy === "add" ? "Đang thêm" : "Thêm"}
+              </button>
             </div>
+            {managerBusy && <p className="manager-status">Đang xử lý, anh chờ chút nhé...</p>}
             <label className="manager-search">
               <span>Tìm trong danh mục</span>
               <input value={catalogSearch} onChange={(event) => setCatalogSearch(event.target.value)} placeholder="Tìm chi nhánh..." />
             </label>
             <div className="manager-list">
-              {catalogBranches.map((branch) => (
-                <div className="manager-row" key={branch}>
-                  <input className="manager-branch-input" defaultValue={branch} />
-                  <button className="manager-icon-button save" onClick={(event) => renameBranch(branch, event.currentTarget.parentElement.querySelector("input"))}><CheckIcon /></button>
-                  <button className="manager-icon-button delete" onClick={() => deleteBranch(branch)}><CloseIcon /></button>
-                </div>
-              ))}
+              {catalogBranches.map((branch) => {
+                const isRenamingThisBranch =
+                  managerBusy.startsWith("rename:") &&
+                  renamingBranch &&
+                  [renamingBranch.oldName, renamingBranch.nextName].some((name) => normalizeText(name) === normalizeText(branch));
+                const isDeletingThisBranch = managerBusy === `delete:${branch}`;
+                const isRowBusy = isRenamingThisBranch || isDeletingThisBranch;
+
+                return (
+                  <div className={`manager-row ${isRowBusy ? "is-busy" : ""}`} key={branch}>
+                    <input className="manager-branch-input" defaultValue={branch} disabled={isRowBusy} />
+                    <button className="manager-icon-button save" disabled={Boolean(managerBusy)} onClick={(event) => renameBranch(branch, event.currentTarget.parentElement.querySelector("input"))}>
+                      {isRenamingThisBranch ? <SpinnerIcon /> : <CheckIcon />}
+                    </button>
+                    <button className="manager-icon-button delete" disabled={Boolean(managerBusy)} onClick={() => deleteBranch(branch)}>
+                      {isDeletingThisBranch ? <SpinnerIcon /> : <CloseIcon />}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
@@ -718,6 +874,27 @@ function formatDateInput(date) {
   return `${year}-${month}-${day}`;
 }
 
+function createClientId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `route-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function buildRouteFromForm(form, fallbackSortOrder) {
+  const branches = (form.branches || []).map(toTitleCase).filter(Boolean);
+  const driverIds = (form.driverIds || []).map(toTitleCase).filter(Boolean);
+  const vehicleId = String(form.vehicleId || "").trim().toLocaleUpperCase("vi");
+  return {
+    id: form.id || createClientId(),
+    date: form.date,
+    title: branches.join(" - ") || "Tuyến mới",
+    vehicle: vehicleId,
+    sortOrder: Number(form.sortOrder || fallbackSortOrder || Date.now()),
+    branches,
+    driverIds,
+    vehicleId
+  };
+}
+
 function mergeBranchNames(current, nextNames) {
   const seen = new Set((current || []).map(normalizeText));
   const merged = [...(current || [])];
@@ -730,6 +907,22 @@ function mergeBranchNames(current, nextNames) {
     }
   });
   return merged;
+}
+
+function sortByVietnameseName(items) {
+  return [...items].sort((first, second) => first.localeCompare(second, "vi"));
+}
+
+function renameBranchInRoutes(items, oldName, nextName) {
+  const oldKey = normalizeText(oldName);
+  return items.map((route) => {
+    const branches = route.branches.map((branch) => (normalizeText(branch) === oldKey ? nextName : branch));
+    return {
+      ...route,
+      branches,
+      title: branches.join(" - ")
+    };
+  });
 }
 
 function upsertRoute(items, route) {
@@ -1009,6 +1202,10 @@ function CheckIcon() {
 
 function CameraIcon() {
   return <svg viewBox="0 0 24 24"><path d="M4 8.5h3l1.5-2h7l1.5 2h3v10H4z" /><path d="M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /></svg>;
+}
+
+function SpinnerIcon() {
+  return <svg className="spinner-icon" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></svg>;
 }
 
 function ListIcon() {

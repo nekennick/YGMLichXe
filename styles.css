@@ -61,6 +61,32 @@ svg {
   stroke-width: 2;
 }
 
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 90;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border: 1px solid rgba(15, 95, 106, 0.24);
+  border-radius: 999px;
+  color: var(--primary-strong);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(38, 34, 24, 0.16);
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.spinner-icon {
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .app-shell {
   width: min(1440px, 100%);
   margin: 0 auto;
@@ -968,6 +994,13 @@ body.is-pointer-dragging {
   padding-right: 3px;
 }
 
+.manager-status {
+  margin: -4px 0 0;
+  color: var(--primary-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .manager-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 34px 34px;
@@ -977,6 +1010,10 @@ body.is-pointer-dragging {
   border: 1px solid #eee5d6;
   border-radius: var(--radius);
   background: white;
+}
+
+.manager-row.is-busy {
+  background: var(--primary-soft);
 }
 
 .manager-branch-input {
@@ -1014,6 +1051,11 @@ body.is-pointer-dragging {
 .manager-icon-button:hover {
   background: var(--primary-soft);
   border-color: rgba(15, 95, 106, 0.28);
+}
+
+.manager-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 [hidden] {
