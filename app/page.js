@@ -945,9 +945,9 @@ function createScheduleImageBlob({ routes, dateLabel, routeCount }) {
   const contentWidth = width - margin * 2;
   const columns = {
     route: 128,
-    branch: 560,
-    driver: 250,
-    vehicle: 166
+    branch: 536,
+    driver: 234,
+    vehicle: 206
   };
   const palette = {
     bg: "#f7f3ea",
@@ -969,12 +969,12 @@ function createScheduleImageBlob({ routes, dateLabel, routeCount }) {
   const rowLayouts = routes.map((route, index) => {
     const branchLines = layoutChips(ctx, route.branches, columns.branch - 48);
     const driverLines = wrapText(ctx, route.driverIds.join(" + ") || "Chưa chọn tài xế", columns.driver - 36, "500 28px Inter, system-ui, sans-serif");
-    const vehicleLines = wrapText(ctx, route.vehicleId || "Chưa chọn xe", columns.vehicle - 36, "800 26px Inter, system-ui, sans-serif");
+    const vehicleLines = wrapVehicleText(ctx, route.vehicleId || "Chưa chọn xe", columns.vehicle - 36, "900 24px Inter, system-ui, sans-serif");
     const contentHeight = Math.max(
       112,
       branchLines.height + 40,
       driverLines.length * 34 + 42,
-      vehicleLines.length * 32 + 42
+      vehicleLines.length * 30 + 42
     );
     return { route, index, branchLines, driverLines, vehicleLines, height: contentHeight };
   });
@@ -1085,7 +1085,7 @@ function drawScheduleRow(ctx, x, y, columns, layout, palette) {
 
   drawChips(ctx, layout.branchLines.lines, x + columns.route + 24, y + 28, palette);
   drawWrappedCell(ctx, layout.driverLines, x + columns.route + columns.branch + 18, y + 44, "500 28px Inter, system-ui, sans-serif", palette.ink);
-  drawWrappedCell(ctx, layout.vehicleLines, x + columns.route + columns.branch + columns.driver + 18, y + 44, "900 26px Inter, system-ui, sans-serif", palette.primaryStrong);
+  drawWrappedCell(ctx, layout.vehicleLines, x + columns.route + columns.branch + columns.driver + 18, y + 42, "900 24px Inter, system-ui, sans-serif", palette.primaryStrong, 30);
 }
 
 function drawChips(ctx, lines, x, y, palette) {
@@ -1108,10 +1108,10 @@ function drawChips(ctx, lines, x, y, palette) {
   });
 }
 
-function drawWrappedCell(ctx, lines, x, y, font, color) {
+function drawWrappedCell(ctx, lines, x, y, font, color, lineHeight = 34) {
   ctx.font = font;
   ctx.fillStyle = color;
-  lines.forEach((line, index) => ctx.fillText(line, x, y + index * 34));
+  lines.forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
 }
 
 function layoutChips(ctx, labels, maxWidth) {
@@ -1149,6 +1149,34 @@ function wrapText(ctx, text, maxWidth, font) {
   });
   if (line) lines.push(line);
   return lines.length ? lines : [""];
+}
+
+function wrapVehicleText(ctx, text, maxWidth, font) {
+  const value = String(text || "").trim();
+  const plateMatch = value.match(/^(.+?)(\s*\(.+\))$/);
+  const sections = plateMatch ? [plateMatch[1].trim(), plateMatch[2].trim()] : [value];
+  return sections.flatMap((section) => wrapTextWithLongTokens(ctx, section, maxWidth, font));
+}
+
+function wrapTextWithLongTokens(ctx, text, maxWidth, font) {
+  const lines = wrapText(ctx, text, maxWidth, font);
+  return lines.flatMap((line) => (ctx.measureText(line).width > maxWidth ? breakLongText(ctx, line, maxWidth) : line));
+}
+
+function breakLongText(ctx, text, maxWidth) {
+  const chunks = [];
+  let chunk = "";
+  String(text).split("").forEach((char) => {
+    const next = `${chunk}${char}`;
+    if (chunk && ctx.measureText(next).width > maxWidth) {
+      chunks.push(chunk);
+      chunk = char;
+    } else {
+      chunk = next;
+    }
+  });
+  if (chunk) chunks.push(chunk);
+  return chunks.length ? chunks : [""];
 }
 
 function roundRect(ctx, x, y, width, height, radius) {
