@@ -301,8 +301,8 @@ textarea:focus {
 
 .route-table-panel {
   border: 1px solid rgba(221, 212, 195, 0.92);
-  border-radius: var(--radius);
-  background: rgba(255, 250, 241, 0.86);
+  border-radius: 8px;
+  background: rgba(255, 250, 241, 0.94);
   overflow: hidden;
 }
 
@@ -366,14 +366,14 @@ textarea:focus {
 }
 
 .route-table {
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 .route-table-head,
 .route-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.2fr) minmax(320px, 2.1fr) minmax(150px, 0.8fr) minmax(110px, 0.6fr);
-  min-width: 760px;
+  grid-template-columns: minmax(118px, 0.55fr) minmax(360px, 2.35fr) minmax(190px, 0.95fr) minmax(190px, 0.9fr);
+  min-width: 0;
 }
 
 .route-table-head {
@@ -387,7 +387,7 @@ textarea:focus {
 
 .route-table-head span,
 .route-cell {
-  padding: 10px 12px;
+  padding: 14px 16px;
   border-right: 1px solid #eee5d6;
 }
 
@@ -399,10 +399,14 @@ textarea:focus {
 .route-row {
   position: relative;
   border-bottom: 1px solid #eee5d6;
-  background: white;
+  background: #fffdf8;
   cursor: pointer;
   transition: background 180ms ease;
   touch-action: pan-y;
+}
+
+.route-row:nth-child(odd) {
+  background: #ffffff;
 }
 
 .route-row:last-child {
@@ -467,9 +471,10 @@ textarea:focus {
 .route-cell {
   display: flex;
   align-items: center;
-  min-height: 54px;
+  min-width: 0;
+  min-height: 72px;
   color: #25312f;
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   line-height: 1.35;
 }
 
@@ -478,11 +483,13 @@ textarea:focus {
   grid-template-columns: 34px minmax(0, 1fr);
   align-content: center;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
+  background: #f7f2e8;
 }
 
 .route-name strong {
-  font-size: 0.94rem;
+  font-size: 1.03rem;
+  font-weight: 900;
 }
 
 .route-name small {
@@ -526,12 +533,28 @@ textarea:focus {
 .vehicle-cell {
   color: var(--primary-strong);
   font-weight: 900;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.vehicle-name-wrap {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vehicle-name-main,
+.vehicle-plate {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .branch-cell {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-content: center;
 }
 
@@ -541,9 +564,9 @@ textarea:focus {
   align-items: center;
   min-height: 30px;
   border-radius: 999px;
-  padding: 5px 9px;
-  font-size: 0.86rem;
-  font-weight: 750;
+  padding: 5px 12px;
+  font-size: 0.95rem;
+  font-weight: 850;
 }
 
 .branch-token {
@@ -632,7 +655,7 @@ body.is-pointer-dragging {
   }
 
   .route-row {
-    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-columns: 86px minmax(0, 1fr);
     min-width: 0;
     border-bottom: 8px solid #f4efe5;
   }
@@ -643,10 +666,10 @@ body.is-pointer-dragging {
 
   .route-cell {
     min-height: 0;
-    padding: 9px 10px;
+    padding: 10px 12px;
     border-right: 0;
     border-bottom: 1px solid #eee5d6;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 
   .route-name {
@@ -656,7 +679,8 @@ body.is-pointer-dragging {
     grid-row: 1 / span 3;
     align-content: start;
     justify-items: center;
-    gap: 6px;
+    gap: 7px;
+    padding: 14px 7px;
     border-right: 1px solid #eee5d6;
     border-bottom: 0;
     background: #f7f2e8;
@@ -670,7 +694,7 @@ body.is-pointer-dragging {
   }
 
   .route-name strong {
-    font-size: 0.88rem;
+    font-size: 1rem;
     width: 100%;
   }
 
@@ -681,27 +705,30 @@ body.is-pointer-dragging {
 
   .route-cell:not(.route-name)::before {
     content: attr(data-label);
-    flex: 0 0 58px;
+    flex: 0 0 70px;
     color: var(--muted);
     font-size: 0.72rem;
     font-weight: 850;
     text-transform: uppercase;
+    line-height: 1.18;
   }
 
   .branch-cell {
     align-items: flex-start;
+    gap: 7px;
   }
 
   .branch-token,
   .branch-empty {
     max-width: 100%;
     min-height: 28px;
-    padding: 4px 8px;
-    font-size: 0.82rem;
+    padding: 4px 10px;
+    font-size: 0.88rem;
   }
 
   .vehicle-cell {
     border-bottom: 0;
+    font-size: 0.95rem;
   }
 }
 
@@ -1188,22 +1215,22 @@ body.is-pointer-dragging {
   }
 
   .route-row {
-    grid-template-columns: 66px minmax(0, 1fr);
+    grid-template-columns: 74px minmax(0, 1fr);
   }
 
   .route-cell {
-    padding: 8px;
-    font-size: 0.84rem;
+    padding: 8px 9px;
+    font-size: 0.88rem;
   }
 
   .route-name {
-    padding: 8px 5px;
+    padding: 10px 5px;
     gap: 5px;
     grid-template-rows: 34px auto;
   }
 
   .route-name strong {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     line-height: 1.12;
   }
 
@@ -1214,7 +1241,7 @@ body.is-pointer-dragging {
   }
 
   .route-cell:not(.route-name)::before {
-    flex-basis: 50px;
+    flex-basis: 58px;
     font-size: 0.66rem;
     line-height: 1.16;
   }
@@ -1226,13 +1253,13 @@ body.is-pointer-dragging {
   .branch-token,
   .branch-empty {
     min-height: 26px;
-    padding: 3px 7px;
-    font-size: 0.78rem;
+    padding: 3px 8px;
+    font-size: 0.8rem;
     line-height: 1.18;
   }
 
   .vehicle-cell {
-    font-size: 0.84rem;
+    font-size: 0.86rem;
   }
 
   .manager-add {

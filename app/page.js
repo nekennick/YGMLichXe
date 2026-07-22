@@ -856,8 +856,20 @@ function RouteRow({ route, index, onEdit, drag, setDrag, dropPreview }) {
         ))}
       </div>
       <div className="route-cell" data-label="Tài xế">{route.driverIds.join(" + ") || "Chưa chọn tài xế"}</div>
-      <div className="route-cell vehicle-cell" data-label="Xe">{route.vehicleId || "Chưa chọn xe"}</div>
+      <div className="route-cell vehicle-cell" data-label="Xe">{renderVehicleName(route.vehicleId || "Chưa chọn xe")}</div>
     </div>
+  );
+}
+
+function renderVehicleName(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^(.+?)(\s*\(.+\))$/);
+  if (!match) return <span className="vehicle-name-main">{text}</span>;
+  return (
+    <span className="vehicle-name-wrap">
+      <span className="vehicle-name-main">{match[1].trim()}</span>
+      <span className="vehicle-plate">{match[2].trim()}</span>
+    </span>
   );
 }
 
