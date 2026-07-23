@@ -862,15 +862,24 @@ function RouteRow({ route, index, onEdit, drag, setDrag, dropPreview }) {
 }
 
 function renderVehicleName(value) {
-  const text = String(value || "").trim();
-  const match = text.match(/^(.+?)(\s*\(.+\))$/);
-  if (!match) return <span className="vehicle-name-main">{text}</span>;
+  const sections = getVehicleNameSections(value);
+  if (sections.length < 2) return <span className="vehicle-name-main">{sections[0] || ""}</span>;
   return (
     <span className="vehicle-name-wrap">
-      <span className="vehicle-name-main">{match[1].trim()}</span>
-      <span className="vehicle-plate">{match[2].trim()}</span>
+      <span className="vehicle-name-main">{sections[0]}</span>
+      {sections.slice(1).map((section, index) => <span key={`${section}-${index}`} className="vehicle-plate">{section}</span>)}
     </span>
   );
+}
+
+function getVehicleNameSections(value) {
+  const text = String(value || "").trim();
+  const delimiterIndex = text.indexOf("|");
+  if (delimiterIndex >= 0) {
+    return [text.slice(0, delimiterIndex + 1).trim(), text.slice(delimiterIndex + 1).trim()].filter(Boolean);
+  }
+  const plateMatch = text.match(/^(.+?)(\s*\(.+\))$/);
+  return plateMatch ? [plateMatch[1].trim(), plateMatch[2].trim()] : [text];
 }
 
 function shiftDate(amount, value, setDate) {
@@ -1164,10 +1173,9 @@ function wrapText(ctx, text, maxWidth, font) {
 }
 
 function wrapVehicleText(ctx, text, maxWidth, font) {
-  const value = String(text || "").trim();
-  const plateMatch = value.match(/^(.+?)(\s*\(.+\))$/);
-  const sections = plateMatch ? [plateMatch[1].trim(), plateMatch[2].trim()] : [value];
-  return sections.flatMap((section) => wrapTextWithLongTokens(ctx, section, maxWidth, font));
+  return getVehicleNameSections(text)
+    .map((section, index) => index === 0 ? section.replace(/\|\s*$/, "") : section)
+    .flatMap((section) => wrapTextWithLongTokens(ctx, section, maxWidth, font));
 }
 
 function wrapTextWithLongTokens(ctx, text, maxWidth, font) {

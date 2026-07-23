@@ -551,6 +551,12 @@ textarea:focus {
   word-break: break-word;
 }
 
+.vehicle-name-wrap > .vehicle-name-main,
+.vehicle-name-wrap > .vehicle-plate {
+  display: block;
+  white-space: nowrap;
+}
+
 .branch-cell {
   display: flex;
   flex-wrap: wrap;
